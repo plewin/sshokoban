@@ -2,6 +2,7 @@ var tmx    = require('tmx-parser');
 var _      = require('lodash');
 var assert = require('assert');
 
+// Produces errors if map object is missing something
 function validate(map) {
   assert(_.has(map, 'version'), "Map has no version");
   assert.strictEqual(map.version, '1.0', "Unsupported map version");
@@ -16,6 +17,7 @@ function validate(map) {
   //TODO finish
 }
 
+// convert a tmx map into a 2d array of tile types
 function internalize(map) {
   var zipped_tiles = _.zip(map.layers[1].tiles, map.layers[0].tiles);
 	  
