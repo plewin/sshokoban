@@ -14,10 +14,10 @@ function validate(map) {
   assert(_.has(map, 'tileHeight'), "Map has no tileHeight");
   assert(_.has(map, 'layers'), "Map has no layers");
   assert(_.isArray(map.layers), "Map layers is not an array");
-  //TODO finish
+  //TODO: Finish
 }
 
-// convert a tmx map into a 2d array of tile types
+// Convert a tmx map into a 2d array of tile types
 function internalize(map) {
   var zipped_tiles = _.zip(map.layers[1].tiles, map.layers[0].tiles);
 	  

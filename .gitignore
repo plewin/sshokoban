@@ -29,4 +29,11 @@ node_modules
 .project
 .settings
 images
-*.tmx
+
+## Probably a temporary section
+# Maps
+src/*.tmx
+# Automation file
+src/*.gradle
+# Tiles
+src/tiles.png
