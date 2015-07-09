@@ -3,9 +3,10 @@
 
 // Node.js modules
 var MapManager = require('./MapManager.js');
+var GameLogic  = require('./GameLogic.js');
 var blessed    = require('blessed');
 var program    = blessed.program();
-var async      = require('async'); 
+var async      = require('async');
 
 // GameEngine object constructor
 function GameEngine() {
@@ -47,44 +48,24 @@ GameEngine.prototype.initializeBindings = function () {
   this.screen.key(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
   });
-  // -- Arrow keys --
-  this.screen.key('left', function(ch, key) {
-    switch (this_ge.currentSessionState[this_ge.playerPosition.y][this_ge.playerPosition.x - 1]) {
-      // If the new location is empty...
-      case 'empty':
-        this_ge.playerPosition.x--;
-        break;
+  console.log("plop");
+  console.log(this.playerPosition) // this is ok
+  // -- Arrow keys
+  
+  function process_arrow_key (ch, key) {
+	var direction = key.name;
+    if (GameLogic.canMove(this_ge.playerPosition, direction, this_ge.currentMap, this_ge.currentSessionState)) {
+	  GameLogic.move(this_ge.playerPosition, direction, this_ge.currentMap, this_ge.currentSessionState);
     }
     this_ge.render();
-  });
-  this.screen.key('right', function(ch, key) {
-    switch (this_ge.currentSessionState[this_ge.playerPosition.y][this_ge.playerPosition.x + 1]) {
-      // If the new location is empty...
-      case 'empty':
-        this_ge.playerPosition.x++;
-        break;
-    }
-    this_ge.render();
-  });
-  this.screen.key('up', function(ch, key) {
-    switch (this_ge.currentSessionState[this_ge.playerPosition.y - 1][this_ge.playerPosition.x]) {
-      // If the new location is empty...
-      case 'empty':
-        this_ge.playerPosition.y--;
-        break;
-    }
-    this_ge.render();
-  });
-  this.screen.key('down', function(ch, key) {
-    switch (this_ge.currentSessionState[this_ge.playerPosition.y + 1][this_ge.playerPosition.x]) {
-      // If the new location is empty...
-      case 'empty':
-        this_ge.playerPosition.y++;
-        break;
-    }
-    this_ge.render();
-  });
+  };
+
+  this.screen.key('left',  process_arrow_key);
+  this.screen.key('right', process_arrow_key);
+  this.screen.key('up',    process_arrow_key);
+  this.screen.key('down',  process_arrow_key);
 };
+
 
 // Rendering
 GameEngine.prototype.render = function () {
@@ -110,7 +91,6 @@ GameEngine.prototype.run = function () {
   this.screen.append(this.gameBox);
   
   var this_ge = this; // Clone object
-  
   // Load the first level
   MapManager.load('level1.tmx', function(err, map) {
     MapManager.validate(map);
