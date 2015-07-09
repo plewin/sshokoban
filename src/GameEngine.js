@@ -53,36 +53,36 @@ GameEngine.prototype.initializeBindings = function () {
       // If the new location is empty...
       case 'empty':
         this_ge.playerPosition.x--;
-        this_ge.render();
         break;
     }
+    this_ge.render();
   });
   this.screen.key('right', function(ch, key) {
     switch (this_ge.currentSessionState[this_ge.playerPosition.y][this_ge.playerPosition.x + 1]) {
       // If the new location is empty...
       case 'empty':
         this_ge.playerPosition.x++;
-        this_ge.render();
         break;
     }
+    this_ge.render();
   });
   this.screen.key('up', function(ch, key) {
     switch (this_ge.currentSessionState[this_ge.playerPosition.y - 1][this_ge.playerPosition.x]) {
       // If the new location is empty...
       case 'empty':
         this_ge.playerPosition.y--;
-        this_ge.render();
         break;
     }
+    this_ge.render();
   });
   this.screen.key('down', function(ch, key) {
     switch (this_ge.currentSessionState[this_ge.playerPosition.y + 1][this_ge.playerPosition.x]) {
       // If the new location is empty...
       case 'empty':
         this_ge.playerPosition.y++;
-        this_ge.render();
         break;
     }
+    this_ge.render();
   });
 };
 
