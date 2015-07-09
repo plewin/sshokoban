@@ -48,8 +48,7 @@ GameEngine.prototype.initializeBindings = function () {
   this.screen.key(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
   });
-  console.log("plop");
-  console.log(this.playerPosition) // this is ok
+
   // -- Arrow keys
   
   function process_arrow_key (ch, key) {
