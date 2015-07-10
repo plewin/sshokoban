@@ -48,8 +48,18 @@ GameModel.prototype.movePlayer = function (direction) {
   if (!this.isTileEmpty(targetPosition)) {
     // not empty -> something pushable to push 
     var newObjectPosition = this.findNextPosition(targetPosition, direction);
-    this.setTileAt(newObjectPosition, this.getTileAt(targetPosition));
-    this.setTileAt(targetPosition, 'empty');
+    
+    if (this.getTileAt(newObjectPosition) == 'objective') {
+      this.setTileAt(newObjectPosition, 'ok');
+    } else {
+      this.setTileAt(newObjectPosition, 'box');
+    }
+    
+    if (this.getTileAt(targetPosition) == 'ok') {
+      this.setTileAt(targetPosition, 'objective');
+    } else {
+      this.setTileAt(targetPosition, 'empty');
+    }
   }
   this.playerPosition = targetPosition;
 };
