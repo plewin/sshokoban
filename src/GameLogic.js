@@ -6,7 +6,11 @@ GameLogic.prototype.isTileEmpty = function (tileType) {
   return tileType == 'empty';
 };
 
-GameLogic.prototype.canMove = function (currentPos, direction, map, internalizedMap) {
+GameLogic.prototype.canMovePlayer = function (gameModel, direction) {
+  var currentPos      = gameModel.playerPosition;
+  var map             = gameModel.currentMap;
+  var internalizedMap = gameModel.currentSessionState;
+
   switch(direction) {
     case 'left':
       if (currentPos.x == 0) return false;
@@ -35,7 +39,11 @@ GameLogic.prototype.canMove = function (currentPos, direction, map, internalized
   }
 };
 
-GameLogic.prototype.move = function (currentPos, direction, map, internalizedMap) {
+GameLogic.prototype.movePlayer = function (gameModel, direction) {
+  var currentPos      = gameModel.playerPosition;
+  var map             = gameModel.map;
+  var internalizedMap = gameModel.currentSessionState;
+
   switch(direction) {
     case 'left':
       currentPos.x -= 1;

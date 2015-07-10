@@ -4,6 +4,7 @@
 // Node.js modules
 var MapManager = require('./MapManager.js');
 var GameLogic  = require('./GameLogic.js');
+var GameModel  = require('./GameModel.js');
 var blessed    = require('blessed');
 var program    = blessed.program();
 var async      = require('async');
@@ -16,9 +17,7 @@ function GameEngine() {
     smartCSR: true
   });
 
-  this.currentMap          = undefined;
-  this.currentSessionState = undefined;
-  this.playerPosition      = {x: 0, y: 0};
+  this.gameModel = new GameModel ();
 
   this.screen.title = 'sshokoban';
   
@@ -53,8 +52,8 @@ GameEngine.prototype.initializeBindings = function () {
   
   function process_arrow_key (ch, key) {
 	var direction = key.name;
-    if (GameLogic.canMove(this_ge.playerPosition, direction, this_ge.currentMap, this_ge.currentSessionState)) {
-	  GameLogic.move(this_ge.playerPosition, direction, this_ge.currentMap, this_ge.currentSessionState);
+    if (GameLogic.canMovePlayer(this_ge.gameModel, direction)) {
+	  GameLogic.movePlayer(this_ge.gameModel, direction);
     }
     this_ge.render();
   };
@@ -69,14 +68,14 @@ GameEngine.prototype.initializeBindings = function () {
 // Rendering
 GameEngine.prototype.render = function () {
   this.screen.render();
-  MapManager.render(this.currentMap, this.playerPosition, this.currentSessionState, this.gameBox, program);
+  MapManager.render(this.gameModel, this.gameBox, program);
 };
 
 GameEngine.prototype.resetPlayerPosition = function () {
-  for (var y = 0; y < this.currentMap.height; y++) {
-    for (var x = 0; x < this.currentMap.width; x++) {
-      if (this.currentSessionState[y][x] == 'start') {
-        this.currentSessionState[y][x] = 'empty';
+  for (var y = 0; y < this.gameModel.currentMap.height; y++) {
+    for (var x = 0; x < this.gameModel.currentMap.width; x++) {
+      if (this.gameModel.currentSessionState[y][x] == 'start') {
+        this.gameModel.currentSessionState[y][x] = 'empty';
         //TODO: Dirty
         return {x: x, y: y};
       }
@@ -93,9 +92,9 @@ GameEngine.prototype.run = function () {
   // Load the first level
   MapManager.load('level1.tmx', function(err, map) {
     MapManager.validate(map);
-    this_ge.currentMap = map;
-    this_ge.currentSessionState = MapManager.internalize(map);
-    this_ge.playerPosition = this_ge.resetPlayerPosition()
+    this_ge.gameModel.currentMap = map;
+    this_ge.gameModel.currentSessionState = MapManager.internalize(map);
+    this_ge.gameModel.playerPosition = this_ge.resetPlayerPosition()
     this_ge.render();
   });
 };

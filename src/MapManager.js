@@ -38,7 +38,11 @@ function load(map_name, callback) {
   tmx.parseFile(map_name, callback);
 }
 
-function render(map, playerPosition, state, game_box, program) {
+function render(gameModel, game_box, program) {
+  var map            = gameModel.currentMap;
+  var playerPosition = gameModel.playerPosition;
+  var state          = gameModel.currentSessionState;
+	
   var characters = {};
   
   characters['empty']     = {'bg': 'green', 'character': ' '};
