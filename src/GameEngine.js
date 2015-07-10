@@ -3,7 +3,6 @@
 
 // Node.js modules
 var MapManager = require('./MapManager.js');
-var GameLogic  = require('./GameLogic.js');
 var GameModel  = require('./GameModel.js');
 var blessed    = require('blessed');
 var program    = blessed.program();
@@ -52,8 +51,8 @@ GameEngine.prototype.initializeBindings = function () {
   
   function process_arrow_key (ch, key) {
 	var direction = key.name;
-    if (GameLogic.canMovePlayer(this_ge.gameModel, direction)) {
-	  GameLogic.movePlayer(this_ge.gameModel, direction);
+    if (this_ge.gameModel.canMovePlayer(direction)) {
+      this_ge.gameModel.movePlayer(direction);
     }
     this_ge.render();
   };
