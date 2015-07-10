@@ -41,20 +41,19 @@ GameModel.prototype.canMovePlayer = function (direction) {
 };
 
 GameModel.prototype.movePlayer = function (direction) {
-  switch(direction) {
-    case 'left':
-      this.playerPosition.x -= 1;
-      break;
-    case 'right':
-      this.playerPosition.x += 1;
-      break;
-    case 'up':
-      this.playerPosition.y -= 1;
-      break;
-    case 'down':
-      this.playerPosition.y += 1;
-      break;
-  }
+  var offsets = {
+    'left'  : {x: -1, y:  0},
+    'right' : {x: +1, y:  0},
+    'up'    : {x:  0, y: -1},
+    'down'  : {x:  0, y: +1},
+  };
+  
+  var targetPosition = {
+    x: this.playerPosition.x + offsets[direction].x,
+    y: this.playerPosition.y + offsets[direction].y,
+  };
+
+  this.playerPosition = targetPosition;
 };
 
 module.exports = GameModel;
