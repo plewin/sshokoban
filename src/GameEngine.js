@@ -60,7 +60,7 @@ GameEngine.prototype.initializeBindings = function () {
       this_ge.gameModel.movePlayer(direction);
       break;
     case 'box':
-      this_ge.gameModel.movePlayerWithBox(direction, this_ge, future);
+      this_ge.gameModel.movePlayerWithBox(direction, future);
       break;
   }
   

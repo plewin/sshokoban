@@ -71,7 +71,7 @@ GameModel.prototype.movePlayer = function (direction) {
   this.playerPosition = targetPosition;
 };
 
-GameModel.prototype.movePlayerWithBox = function (direction, gameEngine, future) {
+GameModel.prototype.movePlayerWithBox = function (direction, future) {
   var offsets = {
     'left'  : {x: -1, y:  0},
     'right' : {x: +1, y:  0},
