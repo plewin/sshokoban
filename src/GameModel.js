@@ -6,8 +6,23 @@ var GameModel = function () {
 
 
 GameModel.prototype.isTileEmpty = function (tileType) {
-  return tileType == 'empty';
+  return tileType == 'empty' || tileType == 'box';
 };
+
+GameModel.prototype.getFutureBlockAt = function (direction) {
+  var currentPos = this.playerPosition;
+
+  switch(direction) {
+    case 'left':
+      return this.currentSessionState[currentPos.y][currentPos.x - 1];
+    case 'right':
+      return this.currentSessionState[currentPos.y][currentPos.x + 1];
+    case 'up':
+      return this.currentSessionState[currentPos.y - 1][currentPos.x];
+    case 'down':
+      return this.currentSessionState[currentPos.y + 1][currentPos.x];
+  }
+}
 
 GameModel.prototype.canMovePlayer = function (direction) {
   var currentPos      = this.playerPosition;
@@ -52,6 +67,27 @@ GameModel.prototype.movePlayer = function (direction) {
     x: this.playerPosition.x + offsets[direction].x,
     y: this.playerPosition.y + offsets[direction].y,
   };
+
+  this.playerPosition = targetPosition;
+};
+
+GameModel.prototype.movePlayerWithBox = function (direction, gameEngine, future) {
+  var offsets = {
+    'left'  : {x: -1, y:  0},
+    'right' : {x: +1, y:  0},
+    'up'    : {x:  0, y: -1},
+    'down'  : {x:  0, y: +1},
+  };
+  
+  var targetPosition = {
+    x: this.playerPosition.x + offsets[direction].x,
+    y: this.playerPosition.y + offsets[direction].y,
+  };
+  
+  //gameEngine.program.sceen.move(targetPosition.x + offsets[direction].x,
+    //targetPosition.y + offsets[direction].y);
+    //gameEngine.program.screen.write(game)
+    this.currentSessionState[targetPosition.y + offsets[direction].y][targetPosition.x + offsets[direction].x] = future;
 
   this.playerPosition = targetPosition;
 };

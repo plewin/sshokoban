@@ -13,7 +13,7 @@ function GameEngine() {
   // Add a blessed screen object
   this.screen = blessed.screen({
     autoPadding: true,
-    smartCSR: true
+    fastCSR: true
   });
 
   this.gameModel = new GameModel ();
@@ -47,14 +47,24 @@ GameEngine.prototype.initializeBindings = function () {
     return process.exit(0);
   });
 
-  // -- Arrow keys
+  // -- Arrow keys --
   
   function process_arrow_key (ch, key) {
 	var direction = key.name;
-    if (this_ge.gameModel.canMovePlayer(direction)) {
+  
+  // Get future block
+  var future = this_ge.gameModel.getFutureBlockAt(direction);
+  // If empty, move player
+  switch(future) {
+    case 'empty':
       this_ge.gameModel.movePlayer(direction);
-    }
-    this_ge.render();
+      break;
+    case 'box':
+      this_ge.gameModel.movePlayerWithBox(direction, this_ge, future);
+      break;
+  }
+  
+  this_ge.render();
   };
 
   this.screen.key('left',  process_arrow_key);

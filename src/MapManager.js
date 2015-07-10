@@ -68,12 +68,9 @@ function render(gameModel, game_box, program) {
       }
     }
   }
-  
 }
 
 module.exports.validate = validate;
 module.exports.load = load;
 module.exports.render = render;
 module.exports.internalize = internalize;
-
-

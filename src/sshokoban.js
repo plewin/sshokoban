@@ -5,6 +5,3 @@ var GameEngine = require('./GameEngine.js');
 
 var ge = new GameEngine();
 ge.run();
-
-
-
