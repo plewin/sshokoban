@@ -48,8 +48,9 @@ function render(gameModel, game_box, program) {
   characters['empty']     = {'bg': 'green', 'character': ' '};
   characters['player']    = {'bg': 'green', 'character': '@'};
   characters['box']       = {'bg': 'green', 'character': '¤'};
-  characters['wall']      = {'bg': 'red', 'character': '█'};
+  characters['wall']      = {'bg': 'red',   'character': '█'};
   characters['objective'] = {'bg': 'green', 'character': '░'};
+  characters['ok']        = {'bg': 'blue',  'character': '░'};
   
   
   for(var y = 0; y < map.height; y++) {
