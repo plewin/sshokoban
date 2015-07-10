@@ -5,91 +5,75 @@ var GameModel = function () {
 }
 
 
-GameModel.prototype.isTileEmpty = function (tileType) {
-  return tileType == 'empty' || tileType == 'box';
+GameModel.prototype.isTileEmpty = function (position) {
+  var empty_tiles = ['empty', 'objective'];
+  return empty_tiles.indexOf(this.getTileAt(position)) >= 0;
 };
 
-GameModel.prototype.getFutureBlockAt = function (direction) {
-  var currentPos = this.playerPosition;
-
-  switch(direction) {
-    case 'left':
-      return this.currentSessionState[currentPos.y][currentPos.x - 1];
-    case 'right':
-      return this.currentSessionState[currentPos.y][currentPos.x + 1];
-    case 'up':
-      return this.currentSessionState[currentPos.y - 1][currentPos.x];
-    case 'down':
-      return this.currentSessionState[currentPos.y + 1][currentPos.x];
+GameModel.prototype.isTilePushable = function (position, direction) {
+  var targetPosition = this.findNextPosition(position, direction);
+  var pushableTiles  = ['box', 'ok'];
+  
+  if (this.isPositionInCurrentMap(position)) {
+	  var tile = this.getTileAt(position);
+	  return pushableTiles.indexOf(tile) >= 0 && this.isTileEmpty(targetPosition);
+  } else {
+	  return false;
   }
-}
+};
+
+GameModel.prototype.getTileAt = function (position) {
+  return this.currentSessionState[position.y][position.x];
+};
+
+GameModel.prototype.setTileAt = function (position, tileType) {
+  this.currentSessionState[position.y][position.x] = tileType;
+};
 
 GameModel.prototype.canMovePlayer = function (direction) {
-  var currentPos      = this.playerPosition;
+  var targetPosition = this.findNextPosition(this.playerPosition, direction);
 
-  switch(direction) {
-    case 'left':
-      if (currentPos.x == 0) return false;
-      
-      var targetTile = this.currentSessionState[currentPos.y][currentPos.x - 1];
-      
-      return this.isTileEmpty(targetTile);
-    case 'right':
-      if (currentPos.x == this.currentMap.width - 1) return false;
-      
-      var targetTile = this.currentSessionState[currentPos.y][currentPos.x + 1];
-
-      return this.isTileEmpty(targetTile);
-    case 'up':
-      if (currentPos.y == 0) return false;
-      
-      var targetTile = this.currentSessionState[currentPos.y - 1][currentPos.x];
-      
-      return this.isTileEmpty(targetTile);
-    case 'down':
-      if (currentPos.y == this.currentMap.height - 1) return false;
-        
-      var targetTile = this.currentSessionState[currentPos.y + 1][currentPos.x];
-
-      return this.isTileEmpty(targetTile);
+  if (this.isPositionInCurrentMap(targetPosition)) {
+	  return this.isTileEmpty(targetPosition) || this.isTilePushable(targetPosition, direction);
+  } else {
+	  return false;
   }
 };
 
+// must call canMovePlayer otherwise undefined behavior
 GameModel.prototype.movePlayer = function (direction) {
+  var targetPosition = this.findNextPosition(this.playerPosition, direction);
+  
+  
+  if (!this.isTileEmpty(targetPosition)) {
+    // not empty -> something pushable to push 
+    var newObjectPosition = this.findNextPosition(targetPosition, direction);
+    this.setTileAt(newObjectPosition, this.getTileAt(targetPosition));
+    this.setTileAt(targetPosition, 'empty');
+  }
+  this.playerPosition = targetPosition;
+};
+
+GameModel.prototype.findNextPosition = function (position, direction) {
   var offsets = {
     'left'  : {x: -1, y:  0},
     'right' : {x: +1, y:  0},
     'up'    : {x:  0, y: -1},
     'down'  : {x:  0, y: +1},
   };
-  
+
   var targetPosition = {
-    x: this.playerPosition.x + offsets[direction].x,
-    y: this.playerPosition.y + offsets[direction].y,
+    x: position.x + offsets[direction].x,
+    y: position.y + offsets[direction].y,
   };
 
-  this.playerPosition = targetPosition;
-};
+  return targetPosition;
+}
 
-GameModel.prototype.movePlayerWithBox = function (direction, future) {
-  var offsets = {
-    'left'  : {x: -1, y:  0},
-    'right' : {x: +1, y:  0},
-    'up'    : {x:  0, y: -1},
-    'down'  : {x:  0, y: +1},
-  };
-  
-  var targetPosition = {
-    x: this.playerPosition.x + offsets[direction].x,
-    y: this.playerPosition.y + offsets[direction].y,
-  };
-  
-  //gameEngine.program.sceen.move(targetPosition.x + offsets[direction].x,
-    //targetPosition.y + offsets[direction].y);
-    //gameEngine.program.screen.write(game)
-    this.currentSessionState[targetPosition.y + offsets[direction].y][targetPosition.x + offsets[direction].x] = future;
-
-  this.playerPosition = targetPosition;
-};
+GameModel.prototype.isPositionInCurrentMap = function (position) {
+  var is_valid_on_x = position.x >= 0 && position.x < this.currentMap.width;
+  var is_valid_on_y = position.y >= 0 && position.y < this.currentMap.height;
+  return is_valid_on_x && is_valid_on_y;
+}
 
 module.exports = GameModel;

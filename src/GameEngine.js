@@ -48,23 +48,12 @@ GameEngine.prototype.initializeBindings = function () {
   });
 
   // -- Arrow keys --
-  
   function process_arrow_key (ch, key) {
 	var direction = key.name;
-  
-  // Get future block
-  var future = this_ge.gameModel.getFutureBlockAt(direction);
-  // If empty, move player
-  switch(future) {
-    case 'empty':
+    if (this_ge.gameModel.canMovePlayer(direction)) {
       this_ge.gameModel.movePlayer(direction);
-      break;
-    case 'box':
-      this_ge.gameModel.movePlayerWithBox(direction, future);
-      break;
-  }
-  
-  this_ge.render();
+    }
+    this_ge.render();
   };
 
   this.screen.key('left',  process_arrow_key);
