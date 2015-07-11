@@ -1,9 +1,16 @@
+var util = require('util');
+var events = require('events');
+var _ = require('lodash');
+
 var GameModel = function () {
+  events.EventEmitter.call(this);
+
   this.currentMap          = undefined;
   this.currentSessionState = undefined;
   this.playerPosition      = {x: 0, y: 0};
-}
+};
 
+util.inherits(GameModel, events.EventEmitter);
 
 GameModel.prototype.isTileEmpty = function (position) {
   var empty_tiles = ['empty', 'objective'];
@@ -40,6 +47,10 @@ GameModel.prototype.canMovePlayer = function (direction) {
   }
 };
 
+GameModel.prototype.isGameOver = function () {
+  return _.filter(_.flatten(this.currentSessionState), function(tile) { return tile == 'objective'}).length == 0;
+}
+
 // must call canMovePlayer otherwise undefined behavior
 GameModel.prototype.movePlayer = function (direction) {
   var targetPosition = this.findNextPosition(this.playerPosition, direction);
@@ -51,6 +62,11 @@ GameModel.prototype.movePlayer = function (direction) {
     
     if (this.getTileAt(newObjectPosition) == 'objective') {
       this.setTileAt(newObjectPosition, 'ok');
+      
+      this.emit('objective-ok', newObjectPosition);
+      if (this.isGameOver()) {
+        this.emit('game-over');
+      }
     } else {
       this.setTileAt(newObjectPosition, 'box');
     }
@@ -60,6 +76,8 @@ GameModel.prototype.movePlayer = function (direction) {
     } else {
       this.setTileAt(targetPosition, 'empty');
     }
+    
+    
   }
   this.playerPosition = targetPosition;
 };

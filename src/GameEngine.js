@@ -17,6 +17,10 @@ function GameEngine() {
   });
 
   this.gameModel = new GameModel ();
+  
+  this.gameModel.on('game-over', function() {
+    process.exit(0);
+  });
 
   this.screen.title = 'sshokoban';
   
