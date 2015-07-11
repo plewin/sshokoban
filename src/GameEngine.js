@@ -17,17 +17,18 @@ function GameEngine() {
   });
 
   this.gameModel = new GameModel ();
-  
-  this.gameModel.on('game-over', function() {
-    process.exit(0);
-  });
 
   this.screen.title = 'sshokoban';
   
-  this.gameBox = blessed.box({
+  this.bodyBox = blessed.box({
     top: 'center',
     left: 'center',
     width: 80,
+    height: 24,
+  });
+  
+  this.gameBox = blessed.box({
+    width: 45,
     height: 24,
     border: {
       type: 'line'
@@ -38,6 +39,25 @@ function GameEngine() {
         fg: '#f0f0f0'
       },
     }
+  });
+
+  this.chatBox = blessed.box({
+    right: 0,
+    width: 35,
+    height: 24,
+    scrollable: true,
+    alwaysScroll: true,
+    border: {
+      type: 'line'
+    },
+  });
+  
+  var self = this;
+  this.gameModel.on('objective-ok', function() {
+    self.chatBox.pushLine("One objective complete");
+  });
+  this.gameModel.on('game-over', function() {
+    self.chatBox.pushLine("Game over, thanks for playing");
   });
 }
 
@@ -88,7 +108,11 @@ GameEngine.prototype.resetPlayerPosition = function () {
 // Begin the game (After construction)
 GameEngine.prototype.run = function () {
   this.initializeBindings();
-  this.screen.append(this.gameBox);
+  
+  this.bodyBox.append(this.gameBox);
+  this.bodyBox.append(this.chatBox);
+  
+  this.screen.append(this.bodyBox);
   
   var this_ge = this; // Clone object
   // Load the first level
