@@ -45,12 +45,12 @@ function render(gameModel, game_box, program) {
 	
   var characters = {};
   
-  characters['empty']     = {'bg': 'green', 'character': ' '};
-  characters['player']    = {'bg': 'green', 'character': '@'};
-  characters['box']       = {'bg': 'green', 'character': '¤'};
-  characters['wall']      = {'bg': 'red',   'character': '█'};
-  characters['objective'] = {'bg': 'green', 'character': '░'};
-  characters['ok']        = {'bg': 'blue',  'character': '░'};
+  characters['empty']     = {'bg': 'green', 'fg': 'white',   'character': ' '};
+  characters['player']    = {'bg': 'green', 'fg': 'red',     'character': '@'};
+  characters['box']       = {'bg': 'green', 'fg': 'red',     'character': '¤'};
+  characters['wall']      = {'bg': 'red',   'fg': 'gray',    'character': '█'};
+  characters['objective'] = {'bg': 'green', 'fg': 'white',   'character': '░'};
+  characters['ok']        = {'bg': 'blue',  'fg': 'white',   'character': '░'};
   
   
   for(var y = 0; y < map.height; y++) {
@@ -64,8 +64,10 @@ function render(gameModel, game_box, program) {
       if(x < game_box.width - 2 && y < game_box.height - 2) {
         program.move(x + game_box.aleft + 1, y + game_box.atop + 1);
         program.bg(characters[type].bg);
+        program.fg(characters[type].fg);
         program.write(characters[type].character);
         program.bg('!' + characters[type].bg);
+        program.fg('!' + characters[type].fg);
       }
     }
   }
