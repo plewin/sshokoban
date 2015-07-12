@@ -16,7 +16,7 @@ function GameEngine() {
     fastCSR: true
   });
 
-  this.gameModel = new GameModel ();
+  this.gameModel = undefined;
 
   this.screen.title = 'sshokoban';
   
@@ -50,14 +50,6 @@ function GameEngine() {
     border: {
       type: 'line'
     },
-  });
-  
-  var self = this;
-  this.gameModel.on('objective-ok', function() {
-    self.chatBox.pushLine("One objective complete");
-  });
-  this.gameModel.on('game-over', function() {
-    self.chatBox.pushLine("Game over, thanks for playing");
   });
 }
 
@@ -93,17 +85,37 @@ GameEngine.prototype.render = function () {
   MapManager.render(this.gameModel, this.gameBox, program);
 };
 
-GameEngine.prototype.resetPlayerPosition = function () {
-  for (var y = 0; y < this.gameModel.currentMap.height; y++) {
-    for (var x = 0; x < this.gameModel.currentMap.width; x++) {
-      if (this.gameModel.currentSessionState[y][x] == 'start') {
-        this.gameModel.currentSessionState[y][x] = 'empty';
-        //TODO: Dirty
-        return {x: x, y: y};
-      }
-    }
-  }     
-}
+GameEngine.prototype.playLevel = function (level, callback) {
+  var this_ge = this;
+
+  var on_objective_ok = function () {
+    this_ge.chatBox.pushLine("One objective complete");
+  };
+  
+  var on_game_over = function() {
+    this_ge.chatBox.pushLine("Game over, thanks for playing");
+    callback(null, null);
+  };
+
+  var on_ready = function () {
+    this_ge.chatBox.pushLine("Now playing " + level);
+    this_ge.render();
+  }
+
+  var on_map_loaded = function (err, map) {
+    MapManager.validate(map);
+	    
+    this_ge.gameModel = new GameModel ();
+
+    this_ge.gameModel.on('ready', on_ready);
+    this_ge.gameModel.on('objective-ok', on_objective_ok);
+    this_ge.gameModel.on('game-over', on_game_over);
+  
+    this_ge.gameModel.initialize(map, MapManager.internalize(map));
+  }
+
+  MapManager.load('level1.tmx', on_map_loaded);
+};
 
 // Begin the game (After construction)
 GameEngine.prototype.run = function () {
@@ -114,15 +126,18 @@ GameEngine.prototype.run = function () {
   
   this.screen.append(this.bodyBox);
   
-  var this_ge = this; // Clone object
-  // Load the first level
-  MapManager.load('level1.tmx', function(err, map) {
-    MapManager.validate(map);
-    this_ge.gameModel.currentMap = map;
-    this_ge.gameModel.currentSessionState = MapManager.internalize(map);
-    this_ge.gameModel.playerPosition = this_ge.resetPlayerPosition()
-    this_ge.render();
+  var self = this;
+  async.series([
+    function (callback) {
+      self.playLevel('level1', callback);
+    },
+    function (callback) {
+      self.playLevel('level2', callback);
+    }, 
+  ], function (err, results) {
+	
   });
+
 };
 
 module.exports = GameEngine;

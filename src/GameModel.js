@@ -12,6 +12,26 @@ var GameModel = function () {
 
 util.inherits(GameModel, events.EventEmitter);
 
+GameModel.prototype.initialize = function (map, sessionState) {
+  this.currentMap          = map;
+  this.currentSessionState = sessionState;
+  this.playerPosition      = this.resetPlayerPosition();
+
+  this.emit('ready');
+};
+
+GameModel.prototype.resetPlayerPosition = function () {
+  for (var y = 0; y < this.currentMap.height; y++) {
+    for (var x = 0; x < this.currentMap.width; x++) {
+      if (this.currentSessionState[y][x] == 'start') {
+        this.currentSessionState[y][x] = 'empty';
+        //TODO: Dirty
+        return {x: x, y: y};
+      }
+    }
+  }     
+};
+
 GameModel.prototype.isTileEmpty = function (position) {
   var empty_tiles = ['empty', 'objective'];
   return empty_tiles.indexOf(this.getTileAt(position)) >= 0;
