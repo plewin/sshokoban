@@ -4,62 +4,20 @@
 // Node.js modules
 var MapManager = require('./MapManager.js');
 var GameModel  = require('./GameModel.js');
-var blessed    = require('blessed');
-var program    = blessed.program();
+var GameView   = require('./GameView.js');
 var async      = require('async');
 
-// GameEngine object constructor
 function GameEngine() {
-  // Add a blessed screen object
-  this.screen = blessed.screen({
-    autoPadding: true,
-    fastCSR: true
-  });
-
   this.gameModel = undefined;
-
-  this.screen.title = 'sshokoban';
-  
-  this.bodyBox = blessed.box({
-    top: 'center',
-    left: 'center',
-    width: 80,
-    height: 24,
-  });
-  
-  this.gameBox = blessed.box({
-    width: 45,
-    height: 24,
-    border: {
-      type: 'line'
-    },
-    style: {
-      fg: 'white',
-      border: {
-        fg: '#f0f0f0'
-      },
-    }
-  });
-
-  this.chatBox = blessed.box({
-    right: 0,
-    width: 35,
-    height: 24,
-    scrollable: true,
-    alwaysScroll: true,
-    border: {
-      type: 'line'
-    },
-  });
+  this.gameView  = new GameView();
 }
 
-// Initialize key bindings
 GameEngine.prototype.initializeBindings = function () {
   var this_ge = this;
   
   // Add key events to the following:
   // -- Exit --
-  this.screen.key(['escape', 'q', 'C-c'], function(ch, key) {
+  this.gameView.bindKey(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
   });
 
@@ -72,33 +30,31 @@ GameEngine.prototype.initializeBindings = function () {
     this_ge.render();
   };
 
-  this.screen.key('left',  process_arrow_key);
-  this.screen.key('right', process_arrow_key);
-  this.screen.key('up',    process_arrow_key);
-  this.screen.key('down',  process_arrow_key);
+  this.gameView.bindKey('left',  process_arrow_key);
+  this.gameView.bindKey('right', process_arrow_key);
+  this.gameView.bindKey('up',    process_arrow_key);
+  this.gameView.bindKey('down',  process_arrow_key);
 };
 
-
-// Rendering
 GameEngine.prototype.render = function () {
-  this.screen.render();
-  MapManager.render(this.gameModel, this.gameBox, program);
+  this.gameView.refresh();
+  MapManager.render(this.gameModel, this.gameView.getGameViewport(), this.gameView.getCanvas());
 };
 
 GameEngine.prototype.playLevel = function (level, callback) {
   var this_ge = this;
 
   var on_objective_ok = function () {
-    this_ge.chatBox.pushLine("One objective complete");
+    this_ge.gameView.pushLine("Sys: One objective complete");
   };
   
   var on_game_over = function() {
-    this_ge.chatBox.pushLine("Game over, thanks for playing");
+    this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
     callback(null, null);
   };
 
   var on_ready = function () {
-    this_ge.chatBox.pushLine("Now playing " + level);
+    this_ge.gameView.pushLine("Sys: Now playing " + level);
     this_ge.render();
   }
 
@@ -117,14 +73,8 @@ GameEngine.prototype.playLevel = function (level, callback) {
   MapManager.load('level1.tmx', on_map_loaded);
 };
 
-// Begin the game (After construction)
 GameEngine.prototype.run = function () {
   this.initializeBindings();
-  
-  this.bodyBox.append(this.gameBox);
-  this.bodyBox.append(this.chatBox);
-  
-  this.screen.append(this.bodyBox);
   
   var self = this;
   async.series([
