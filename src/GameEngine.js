@@ -5,11 +5,15 @@
 var MapManager = require('./MapManager.js');
 var GameModel  = require('./GameModel.js');
 var GameView   = require('./GameView.js');
+var commands   = require('./commands.js')
 var async      = require('async');
+var _          = require('lodash');
 
 function GameEngine() {
   this.gameModel = undefined;
   this.gameView  = new GameView();
+
+  this.pendingCommands = [];
 }
 
 GameEngine.prototype.initializeBindings = function () {
@@ -25,7 +29,7 @@ GameEngine.prototype.initializeBindings = function () {
   function process_arrow_key (ch, key) {
 	var direction = key.name;
     if (this_ge.gameModel.canMovePlayer(direction)) {
-      this_ge.gameModel.movePlayer(direction);
+      this_ge.pendingCommands.push(new commands.MovePlayer(direction));
     }
     this_ge.render();
   };
@@ -37,6 +41,12 @@ GameEngine.prototype.initializeBindings = function () {
 };
 
 GameEngine.prototype.render = function () {
+  var self = this;
+  _.forEach(this.pendingCommands, function(command) {
+    command.execute(self.gameModel); 
+  });
+  this.pendingCommands = [];
+
   this.gameView.refresh();
   MapManager.render(this.gameModel, this.gameView.getGameViewport(), this.gameView.getCanvas());
 };
