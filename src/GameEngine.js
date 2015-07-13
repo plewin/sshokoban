@@ -32,6 +32,10 @@ GameEngine.prototype.initializeBindings = function () {
   this.gameView.bindKey(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
   });
+};
+
+GameEngine.prototype.initializeGamzBindings = function () {
+  var this_ge = this;
 
   // -- Arrow keys --
   function process_arrow_key (ch, key) {
@@ -47,10 +51,12 @@ GameEngine.prototype.initializeBindings = function () {
     
   };
 
-  this.gameView.bindKey('left',  process_arrow_key);
-  this.gameView.bindKey('right', process_arrow_key);
-  this.gameView.bindKey('up',    process_arrow_key);
-  this.gameView.bindKey('down',  process_arrow_key);
+  this.processArrowKey = process_arrow_key;
+
+  this.gameView.bindKey('left',  this.processArrowKey);
+  this.gameView.bindKey('right', this.processArrowKey);
+  this.gameView.bindKey('up',    this.processArrowKey);
+  this.gameView.bindKey('down',  this.processArrowKey);
 };
 
 GameEngine.prototype.pushCommand = function (command, callback) {
@@ -77,6 +83,9 @@ GameEngine.prototype.playLevel = function (level, callback) {
   logger.info('Playing level %s', level);
   var this_ge = this;
 
+  this.gameView.bodyBox.show();
+  this.initializeGamzBindings();
+
   var on_objective_ok = function () {
     logger.debug('One objective complete');
     this_ge.gameView.pushLine("Sys: One objective complete");
@@ -86,7 +95,13 @@ GameEngine.prototype.playLevel = function (level, callback) {
     logger.debug('Game over');
     this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
     
-    this_ge.datastore.deleteCurrentSession().then(function(result) {       
+    this_ge.datastore.deleteCurrentSession().then(function(result) {
+      this_ge.gameView.bodyBox.hide();
+      this_ge.gameView.refresh();
+      this_ge.gameView.unbindKey('left',  this.processArrowKey);
+      this_ge.gameView.unbindKey('right', this.processArrowKey);
+      this_ge.gameView.unbindKey('up',    this.processArrowKey);
+      this_ge.gameView.unbindKey('down',  this.processArrowKey);
       callback(null, null);
     });
   };
@@ -146,25 +161,41 @@ GameEngine.prototype.playLevel = function (level, callback) {
   MapManager.load('level1.tmx', on_map_loaded);
 };
 
+GameEngine.prototype.displayHome = function (callback) {
+  var self = this;
+
+  this.gameView.lobyBox.show();
+  
+  
+  this.datastore.listSessions().then(function (results) {
+    results.toArray().then(function(rows) {
+      var trucs = _.map(rows, function(row) {
+        return row.id + " " + row.player;
+      });
+
+      self.gameView.sessionsList.setItems(trucs);
+      self.gameView.refresh();
+      
+      self.gameView.sessionsList.on('select', function(elem, index) {
+    	self.gameView.lobyBox.hide();
+        callback(null, index);
+      });
+    });
+  });
+};
+
 GameEngine.prototype.run = function () {
   logger.debug('Running game engine');
-  this.initializeBindings();
   
   var self = this;
-  async.series([
-    function (callback) {
-      self.datastore.connect().then(function() { callback(null, null) });
-    },
-    function (callback) {
-      self.playLevel('level1', callback);
-    },
-    function (callback) {
-      self.playLevel('level2', callback);
-    }, 
-  ], function (err, results) {
-	
-  });
 
+  this.datastore.connect()
+      .then(function() {
+        self.initializeBindings();
+        self.displayHome(function(err, index) {
+          self.playLevel('level1', function() { console.log("finish"); });
+        });
+      });
 };
 
 module.exports = GameEngine;

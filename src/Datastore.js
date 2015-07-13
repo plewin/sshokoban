@@ -9,6 +9,11 @@ function Datastore () {
   this.changesCursor = null;
 };
 
+Datastore.prototype.listSessions = function () {
+  return r.table('sessions')
+          .run(this.connection);
+};
+
 Datastore.prototype.connect = function () {
   var self = this;
   return r.connect({host: 'localhost', port: 28015})
