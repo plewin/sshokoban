@@ -8,11 +8,13 @@ var GameView   = require('./GameView.js');
 var commands   = require('./commands.js')
 var async      = require('async');
 var _          = require('lodash');
+var r          = require('rethinkdb');
 
 function GameEngine() {
   this.gameModel = undefined;
   this.gameView  = new GameView();
 
+  this.connection      = null;
   this.pendingCommands = [];
 }
 
@@ -29,9 +31,13 @@ GameEngine.prototype.initializeBindings = function () {
   function process_arrow_key (ch, key) {
 	var direction = key.name;
     if (this_ge.gameModel.canMovePlayer(direction)) {
-      this_ge.pendingCommands.push(new commands.MovePlayer(direction));
+      this_ge.pushCommand(new commands.MovePlayer(direction), function () {
+        this_ge.render();
+      });
+    } else {
+      this_ge.render();
     }
-    this_ge.render();
+    
   };
 
   this.gameView.bindKey('left',  process_arrow_key);
@@ -40,8 +46,19 @@ GameEngine.prototype.initializeBindings = function () {
   this.gameView.bindKey('down',  process_arrow_key);
 };
 
+GameEngine.prototype.pushCommand = function (command, callback) {
+  //this.pendingCommands.push(command);
+  r.table('commands').insert([
+    _.extend(command, {session: 1})
+  ]).run(this.connection)
+  .then(function(result) {
+    callback();
+  });
+};
+
 GameEngine.prototype.render = function () {
   var self = this;
+
   _.forEach(this.pendingCommands, function(command) {
     command.execute(self.gameModel); 
   });
@@ -53,6 +70,7 @@ GameEngine.prototype.render = function () {
 
 GameEngine.prototype.playLevel = function (level, callback) {
   var this_ge = this;
+  var datacursor = null;
 
   var on_objective_ok = function () {
     this_ge.gameView.pushLine("Sys: One objective complete");
@@ -60,13 +78,48 @@ GameEngine.prototype.playLevel = function (level, callback) {
   
   var on_game_over = function() {
     this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
-    callback(null, null);
+    
+    datacursor.close();
+
+    r.table('commands')
+     .filter({"session": 1})
+     .delete()
+     .run(this_ge.connection)
+     .then(function(result) {       
+       callback(null, null);
+     });
   };
 
   var on_ready = function () {
     this_ge.gameView.pushLine("Sys: Now playing " + level);
     this_ge.render();
-  }
+    
+    r.table('commands')
+     .filter(r.row('session').eq(1))
+     .run(this_ge.connection)
+     .then(function(cursor) {
+        cursor.toArray(function(err, result) {
+          if (err) throw err;
+          _.forEach(result, function(command) {
+            this_ge.pendingCommands.push(commands.parse(command));
+          });
+          this_ge.render();
+            
+          r.table('commands')
+           .filter(r.row('session').eq(1))
+           .changes()
+           .run(this_ge.connection)
+           .then(function(cursor) {
+             datacursor = cursor;
+             cursor.each(function(err, row) {
+               if (err) throw err;
+               this_ge.pendingCommands.push(commands.parse(row['new_val']));
+               this_ge.render();
+             });
+           });
+        });
+    });
+  };
 
   var on_map_loaded = function (err, map) {
     MapManager.validate(map);
@@ -76,8 +129,14 @@ GameEngine.prototype.playLevel = function (level, callback) {
     this_ge.gameModel.on('ready', on_ready);
     this_ge.gameModel.on('objective-ok', on_objective_ok);
     this_ge.gameModel.on('game-over', on_game_over);
-  
-    this_ge.gameModel.initialize(map, MapManager.internalize(map));
+    
+    r.table('commands')
+     .filter({"session": 1})
+     .delete()
+     .run(this_ge.connection)
+     .then(function(result) {
+        this_ge.gameModel.initialize(map, MapManager.internalize(map));
+      });
   }
 
   MapManager.load('level1.tmx', on_map_loaded);
@@ -88,6 +147,13 @@ GameEngine.prototype.run = function () {
   
   var self = this;
   async.series([
+    function (callback) {
+      r.connect( {host: 'localhost', port: 28015}, function(err, conn) {
+        if (err) throw err;
+        self.connection = conn;
+        callback(err, null);
+      });
+    },
     function (callback) {
       self.playLevel('level1', callback);
     },
