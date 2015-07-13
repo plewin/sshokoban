@@ -48,7 +48,7 @@ GameEngine.prototype.initializeBindings = function () {
 };
 
 GameEngine.prototype.pushCommand = function (command, callback) {
-  this.datastore.pushCommand(1, command).then(function(result) {
+  this.datastore.pushCommand(command).then(function(result) {
     callback();
   });
 };
@@ -76,7 +76,7 @@ GameEngine.prototype.playLevel = function (level, callback) {
   var on_game_over = function() {
     this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
     
-    this_ge.datastore.deleteSession(1).then(function(result) {       
+    this_ge.datastore.deleteCurrentSession().then(function(result) {       
       callback(null, null);
     });
   };
@@ -85,8 +85,8 @@ GameEngine.prototype.playLevel = function (level, callback) {
     this_ge.gameView.pushLine("Sys: Now playing " + level);
     this_ge.render(); // render at least once
     
-    var queue_commands = function (commands) {
-      _.forEach(commands, function(command) {
+    var queue_commands = function (reveived_commands) {
+      _.forEach(reveived_commands, function(command) {
         this_ge.pendingCommands.push(commands.parse(command));
       });
     };
@@ -103,14 +103,14 @@ GameEngine.prototype.playLevel = function (level, callback) {
       });
     };
     
-    this_ge.datastore.fetchPreviousCommands(1)
+    this_ge.datastore.fetchPreviousCommands()
       .then(function(cursor) {
         cursor.toArray()
               .then(queue_commands)
               .then(apply_commands);
       })
       .then(function() {
-        this_ge.datastore.registerCommandChanges(1)
+        this_ge.datastore.registerCommandChanges()
                          .then(register_command_stream);
       });
   };
@@ -124,7 +124,7 @@ GameEngine.prototype.playLevel = function (level, callback) {
     this_ge.gameModel.on('objective-ok', on_objective_ok);
     this_ge.gameModel.on('game-over', on_game_over);
     
-    this_ge.datastore.startSession(1).then(function(result) {
+    this_ge.datastore.startCurrentSession().then(function(result) {
       this_ge.gameModel.initialize(map, MapManager.internalize(map));
     });
   };
