@@ -5,6 +5,7 @@ var _ = require('lodash');
 function Datastore () {
   this.connection = null;
   this.sessionId = null;
+  this.changesCursor = null;
 };
 
 Datastore.prototype.connect = function () {
@@ -32,6 +33,10 @@ Datastore.prototype.registerCommandChanges = function () {
           .filter(r.row('session').eq(this.sessionId))
           .changes()
           .run(this.connection)
+          .then(function (cursor) {
+            this.changesCursor = cursor;
+            return cursor;
+          })
 };
 
 Datastore.prototype.startCurrentSession = function () {
@@ -56,6 +61,12 @@ Datastore.prototype.deleteCurrentSession = function () {
           .get(this.sessionId)
           .delete()
           .run(this.connection)
+          .then(function() {
+            if(self.changesCursor != null) {
+              self.changesCursor.close();
+              self.changesCursor = null;
+            }
+          })
           .then(function() {
             return r.table('commands')
                     .filter({"session": self.sessionId})

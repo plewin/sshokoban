@@ -98,8 +98,10 @@ GameEngine.prototype.playLevel = function (level, callback) {
     var register_command_stream = function (cursor) {
       cursor.each(function(err, row) {
         if (err) throw err;
-        this_ge.pendingCommands.push(commands.parse(row['new_val']));
-        this_ge.render();
+        if(row['new_val'] != null && row['old_val'] == null) {
+          this_ge.pendingCommands.push(commands.parse(row['new_val']));
+          this_ge.render();	
+        }
       });
     };
     
