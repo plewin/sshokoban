@@ -28,15 +28,17 @@ Datastore.prototype.pushCommand = function(command) {
           .run(this.connection);
 };
 
-Datastore.prototype.fetchPreviousCommands = function () {
+Datastore.prototype.fetchPreviousCommands = function (sessionId) {
+  var _sessionId = sessionId == undefined ? this.sessionId : sessionId;
   return r.table('commands')
-          .filter(r.row('session').eq(this.sessionId))
+          .filter(r.row('session').eq(_sessionId))
           .run(this.connection);
 }
 
-Datastore.prototype.registerCommandChanges = function () {
+Datastore.prototype.registerCommandChanges = function (sessionId) {
+  var _sessionId = sessionId == undefined ? this.sessionId : sessionId;
   return r.table('commands')
-          .filter(r.row('session').eq(this.sessionId))
+          .filter(r.row('session').eq(_sessionId))
           .changes()
           .run(this.connection)
           .then(function (cursor) {

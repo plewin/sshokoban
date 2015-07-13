@@ -77,6 +77,76 @@ GameEngine.prototype.render = function () {
   MapManager.render(this.gameModel, this.gameView.getGameViewport(), this.gameView.getCanvas());
 };
 
+GameEngine.prototype.joinLevel = function (sessionId, callback) {
+  logger.info('Joining session %s', sessionId);
+  var this_ge = this;
+ 
+  this.gameView.bodyBox.show();
+  //this.initializeGamzBindings();
+
+  var on_objective_ok = function () {
+    logger.debug('One objective complete');
+    this_ge.gameView.pushLine("Sys: One objective complete");
+  };
+  
+  var on_game_over = function() {
+    logger.debug('Game over');
+    this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
+  };
+
+  var on_ready = function () {
+    logger.debug('Game ready');
+    this_ge.gameView.pushLine("Sys: Now watching");
+    this_ge.render(); // render at least once
+    
+    var queue_commands = function (reveived_commands) {
+      _.forEach(reveived_commands, function(command) {
+        this_ge.pendingCommands.push(commands.parse(command));
+      });
+    };
+    
+    var apply_commands = function () {
+      this_ge.render();
+    };
+    
+    var register_command_stream = function (cursor) {
+      cursor.each(function(err, row) {
+        if (err) throw err;
+        if(row['new_val'] != null && row['old_val'] == null) {
+          this_ge.pendingCommands.push(commands.parse(row['new_val']));
+          this_ge.render();	
+        }
+      });
+    };
+    
+    this_ge.datastore.fetchPreviousCommands(sessionId)
+      .then(function(cursor) {
+        cursor.toArray()
+              .then(queue_commands)
+              .then(apply_commands);
+      })
+      .then(function() {
+        this_ge.datastore.registerCommandChanges(sessionId)
+                         .then(register_command_stream);
+      });
+  };
+
+  var on_map_loaded = function (err, map) {
+    MapManager.validate(map);
+    logger.debug('Map loaded successfully');
+	    
+    this_ge.gameModel = new GameModel ();
+
+    this_ge.gameModel.on('ready', on_ready);
+    this_ge.gameModel.on('objective-ok', on_objective_ok);
+    this_ge.gameModel.on('game-over', on_game_over);
+    
+    this_ge.gameModel.initialize(map, MapManager.internalize(map));
+  };
+
+  MapManager.load('level1.tmx', on_map_loaded);
+};
+
 GameEngine.prototype.playLevel = function (level, callback) {
   logger.info('Playing level %s', level);
   var this_ge = this;
@@ -167,20 +237,21 @@ GameEngine.prototype.displayHome = function (callback) {
   
   this.datastore.listSessions().then(function (results) {
     results.toArray().then(function(rows) {
-      var trucs = _.map(rows, function(row) {
-        return row.id + " " + row.player + " " + row.start
+      var currentSessions = _.map(rows, function(row) {
+        var short_id = row.id.split('-')[0];   
+        return short_id + " " + row.start.toISOString() + " player:" + row.player;
       });
 
-      self.gameView.sessionsList.setItems(trucs);
+      self.gameView.sessionsList.setItems(currentSessions);
       self.gameView.refresh();
       
       self.gameView.sessionsList.on('select', function(elem, index) {
     	self.gameView.lobyBox.hide();
-        callback(null, index);
+        callback(null, {type: 'join', sessionId: rows[index].id});
       });
       
       self.gameView.newGameButton.on('press', function() {
-    	callback(null, null);
+    	callback(null, {type: 'new-game'});
       });
     });
   });
@@ -194,8 +265,12 @@ GameEngine.prototype.run = function () {
   this.datastore.connect()
       .then(function() {
         self.initializeBindings();
-        self.displayHome(function(err, index) {
-          self.playLevel('level1', function() { console.log("finish"); });
+        self.displayHome(function(err, ask) {
+          if(ask.type == 'new-game') {
+            self.playLevel('level1', function() { console.log("finish"); });
+          } else if(ask.type == 'join') {
+            self.joinLevel(ask.sessionId, function() { console.log("finish"); }); 
+          }
         });
       });
 };
