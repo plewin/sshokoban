@@ -54,25 +54,52 @@ function GameView () {
     align: "left",
     mouse: true,
     keys: true,
-    style: {
-        bg: 'blue',
-        focus: {
-          bg: 'red'
-        },
-        hover: {
-          bg: 'red'
-        }
-      },
     width: "70%",
     height: "100%",
     top: "center",
     left: "left",
+    style: {
+	    fg: 'blue',
+	    focus: {
+	      //bg: 'red'
+	    },
+	    hover: {
+	      fg: 'red'
+	    }
+	  },
     border: {
       type: 'line'
     },
-    items: ['plo', 'plopa']
+    items: []
   });
-  
+
+  this.newGameButton = blessed.button({
+	  //parent: form,
+	  mouse: true,
+	  keys: true,
+	  shrink: true,
+	  padding: {
+		top: 1,
+		bottom: 1,
+	    left: 2,
+	    right: 2
+	  },
+	  right: 0,
+	  top: "center",
+	  shrink: true,
+	  name: 'submit',
+	  content: 'Start new game',
+	  style: {
+	    bg: 'blue',
+	    focus: {
+	      bg: 'red'
+	    },
+	    hover: {
+	      bg: 'red'
+	    }
+	  }
+	});
+
   this.sessionsList.select(0);
   this.sessionsList.focus();
 	  
@@ -80,8 +107,9 @@ function GameView () {
   this.bodyBox.append(this.chatBox);
 
   this.lobyBox.append(this.sessionsList);
+  this.lobyBox.append(this.newGameButton);
+  
   this.screen.append(this.lobyBox);
-
   this.screen.append(this.bodyBox);
 
   this.bodyBox.hide();

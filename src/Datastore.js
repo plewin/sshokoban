@@ -48,7 +48,7 @@ Datastore.prototype.registerCommandChanges = function () {
 Datastore.prototype.startCurrentSession = function () {
   var self = this;
   return r.table('sessions')
-    .insert({player: 'tapz'})
+    .insert({player: 'tapz', map: 'level1.tmx', start: new Date()})
     .run(this.connection)
     .then(function (result) {
       self.sessionId = result.generated_keys[0];

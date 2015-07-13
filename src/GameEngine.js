@@ -27,8 +27,6 @@ GameEngine.prototype.initializeBindings = function () {
 
   var this_ge = this;
   
-  // Add key events to the following:
-  // -- Exit --
   this.gameView.bindKey(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
   });
@@ -170,7 +168,7 @@ GameEngine.prototype.displayHome = function (callback) {
   this.datastore.listSessions().then(function (results) {
     results.toArray().then(function(rows) {
       var trucs = _.map(rows, function(row) {
-        return row.id + " " + row.player;
+        return row.id + " " + row.player + " " + row.start
       });
 
       self.gameView.sessionsList.setItems(trucs);
@@ -179,6 +177,10 @@ GameEngine.prototype.displayHome = function (callback) {
       self.gameView.sessionsList.on('select', function(elem, index) {
     	self.gameView.lobyBox.hide();
         callback(null, index);
+      });
+      
+      self.gameView.newGameButton.on('press', function() {
+    	callback(null, null);
       });
     });
   });
