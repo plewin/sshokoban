@@ -7,8 +7,11 @@ var GameModel  = require('./GameModel.js');
 var GameView   = require('./GameView.js');
 var Datastore  = require('./Datastore.js');
 var commands   = require('./commands.js');
+var logger     = require('winston');
 var async      = require('async');
 var _          = require('lodash');
+
+logger.level = 'warning';
 
 function GameEngine() {
   this.gameModel = undefined;
@@ -20,6 +23,8 @@ function GameEngine() {
 }
 
 GameEngine.prototype.initializeBindings = function () {
+  logger.info("Initializing bindings");
+
   var this_ge = this;
   
   // Add key events to the following:
@@ -30,6 +35,7 @@ GameEngine.prototype.initializeBindings = function () {
 
   // -- Arrow keys --
   function process_arrow_key (ch, key) {
+    logger.debug("Key %s pressed", key.name);
 	var direction = key.name;
     if (this_ge.gameModel.canMovePlayer(direction)) {
       this_ge.pushCommand(new commands.MovePlayer(direction), function () {
@@ -54,6 +60,7 @@ GameEngine.prototype.pushCommand = function (command, callback) {
 };
 
 GameEngine.prototype.render = function () {
+  logger.debug('Rendering');
   var self = this;
 
   _.forEach(this.pendingCommands, function(command) {
@@ -67,13 +74,16 @@ GameEngine.prototype.render = function () {
 };
 
 GameEngine.prototype.playLevel = function (level, callback) {
+  logger.info('Playing level %s', level);
   var this_ge = this;
 
   var on_objective_ok = function () {
+    logger.debug('One objective complete');
     this_ge.gameView.pushLine("Sys: One objective complete");
   };
   
   var on_game_over = function() {
+    logger.debug('Game over');
     this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
     
     this_ge.datastore.deleteCurrentSession().then(function(result) {       
@@ -82,6 +92,7 @@ GameEngine.prototype.playLevel = function (level, callback) {
   };
 
   var on_ready = function () {
+    logger.debug('Game ready');
     this_ge.gameView.pushLine("Sys: Now playing " + level);
     this_ge.render(); // render at least once
     
@@ -119,6 +130,7 @@ GameEngine.prototype.playLevel = function (level, callback) {
 
   var on_map_loaded = function (err, map) {
     MapManager.validate(map);
+    logger.debug('Map loaded successfully');
 	    
     this_ge.gameModel = new GameModel ();
 
@@ -135,6 +147,7 @@ GameEngine.prototype.playLevel = function (level, callback) {
 };
 
 GameEngine.prototype.run = function () {
+  logger.debug('Running game engine');
   this.initializeBindings();
   
   var self = this;

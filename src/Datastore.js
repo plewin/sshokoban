@@ -1,6 +1,7 @@
 
-var r = require('rethinkdb');
-var _ = require('lodash');
+var r      = require('rethinkdb');
+var _      = require('lodash');
+var logger = require('winston');
 
 function Datastore () {
   this.connection = null;

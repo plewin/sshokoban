@@ -1,6 +1,7 @@
-var util = require('util');
+var util   = require('util');
 var events = require('events');
-var _ = require('lodash');
+var _      = require('lodash');
+var logger = require('winston');
 
 var GameModel = function () {
   events.EventEmitter.call(this);

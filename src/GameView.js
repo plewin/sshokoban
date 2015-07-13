@@ -1,5 +1,6 @@
 var blessed    = require('blessed');
 var program    = blessed.program();
+var logger     = require('winston');
 
 function GameView () {
   this.screen = blessed.screen({
