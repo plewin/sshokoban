@@ -32,7 +32,7 @@ GameEngine.prototype.initializeBindings = function () {
   });
 };
 
-GameEngine.prototype.initializeGamzBindings = function () {
+GameEngine.prototype.initializeGameBindings = function () {
   var this_ge = this;
 
   // -- Arrow keys --
@@ -82,7 +82,7 @@ GameEngine.prototype.joinLevel = function (sessionId, callback) {
   var this_ge = this;
  
   this.gameView.bodyBox.show();
-  //this.initializeGamzBindings();
+  //this.initializeGameBindings();
 
   var on_objective_ok = function () {
     logger.debug('One objective complete');
@@ -152,7 +152,7 @@ GameEngine.prototype.playLevel = function (level, callback) {
   var this_ge = this;
 
   this.gameView.bodyBox.show();
-  this.initializeGamzBindings();
+  this.initializeGameBindings();
 
   var on_objective_ok = function () {
     logger.debug('One objective complete');
