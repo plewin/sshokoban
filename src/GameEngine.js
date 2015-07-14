@@ -40,9 +40,10 @@ GameEngine.prototype.initializeGameBindings = function () {
     logger.debug("Key %s pressed", key.name);
 	var direction = key.name;
     if (this_ge.gameModel.canMovePlayer(direction)) {
-      this_ge.pushCommand(new commands.MovePlayer(direction), function () {
-        this_ge.render();
-      });
+      this_ge.pushCommand(new commands.MovePlayer(direction))
+             .then(function () {
+               this_ge.render();
+             });
     } else {
       this_ge.render();
     }
@@ -57,10 +58,8 @@ GameEngine.prototype.initializeGameBindings = function () {
   this.gameView.bindKey('down',  this.processArrowKey);
 };
 
-GameEngine.prototype.pushCommand = function (command, callback) {
-  this.datastore.pushCommand(command).then(function(result) {
-    callback();
-  });
+GameEngine.prototype.pushCommand = function (command) {
+  return this.datastore.pushCommand(command);
 };
 
 GameEngine.prototype.render = function () {
