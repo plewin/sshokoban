@@ -22,53 +22,42 @@ function GameEngine() {
   this.pendingCommands = [];
 }
 
-GameEngine.prototype.initializeBindings = function () {
+GameEngine.prototype.initializeBindings = function() {
   logger.info("Initializing bindings");
-
-  var this_ge = this;
   
   this.gameView.bindKey(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
   });
 };
 
-GameEngine.prototype.initializeGameBindings = function () {
-  var this_ge = this;
+GameEngine.prototype.initializeGameBindings = function() {
+  // needed to unbind
+  this._processArrowKey = processArrowKey;
 
-  // -- Arrow keys --
-  function process_arrow_key (ch, key) {
+  this.gameView.bindKey(['left', 'up', 'right', 'down'], this._processArrowKey);
+  
+  var _this = this;
+
+  function processArrowKey(ch, key) {
     logger.debug("Key %s pressed", key.name);
 	var direction = key.name;
-    if (this_ge.gameModel.canMovePlayer(direction)) {
-      this_ge.pushCommand(new commands.MovePlayer(direction))
-             .then(function () {
-               this_ge.render();
-             });
-    } else {
-      this_ge.render();
+    if (_this.gameModel.canMovePlayer(direction)) {
+      _this.pushCommand(new commands.MovePlayer(direction))
+        .then(function() { _this.render(); });
     }
-    
   };
-
-  this.processArrowKey = process_arrow_key;
-
-  this.gameView.bindKey('left',  this.processArrowKey);
-  this.gameView.bindKey('right', this.processArrowKey);
-  this.gameView.bindKey('up',    this.processArrowKey);
-  this.gameView.bindKey('down',  this.processArrowKey);
 };
 
-GameEngine.prototype.pushCommand = function (command) {
+GameEngine.prototype.pushCommand = function(command) {
   return this.datastore.pushCommand(command);
 };
 
-GameEngine.prototype.render = function () {
+GameEngine.prototype.render = function() {
   logger.debug('Rendering');
-  var self = this;
 
-  var command = undefined;
-  while(command = this.pendingCommands.shift()) {
-    command.execute(self.gameModel);
+  var command;
+  while (command = this.pendingCommands.shift()) {
+    command.execute(this.gameModel);
   }
 
   this.gameView.refresh();
@@ -77,198 +66,191 @@ GameEngine.prototype.render = function () {
 
 GameEngine.prototype.joinLevel = function (sessionId, callback) {
   logger.info('Joining session %s', sessionId);
-  var this_ge = this;
+  var _this = this;
  
   this.gameView.bodyBox.show();
 
-  var on_objective_ok = function () {
-    logger.debug('One objective complete');
-    this_ge.gameView.pushLine("Sys: One objective complete");
+  var onObjectiveOk = function() {
+    _this.gameView.pushLine("Sys: One objective complete");
   };
   
-  var on_game_over = function() {
-    logger.debug('Game over');
-    this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
+  var onGameOver = function() {
+    _this.gameView.pushLine("Sys: Game over, thanks for playing");
   };
 
-  var on_ready = function () {
-    logger.debug('Game ready');
-    this_ge.gameView.pushLine("Sys: Now watching");
-    this_ge.render(); // render at least once
-    
-    var queue_commands = function (reveived_commands) {
-      _.forEach(reveived_commands, function(command) {
-        this_ge.pendingCommands.push(commands.parse(command));
+  var onReady = function() {
+    _this.gameView.pushLine("Sys: Now watching");
+    _this.render(); // render at least once
+
+    _this.datastore.fetchPreviousCommands(sessionId)
+      .then(function processPreviousCommands(cursor) {
+        cursor.toArray().then(queueCommands).then(applyCommands);
+      })
+      .then(function subscribeNextCommands() {
+        _this.datastore.registerCommandChanges(sessionId).then(registerCommandStream);
+      });
+
+    function queueCommands(reveivedCommands) {
+      _.forEach(reveivedCommands, function(command) {
+        _this.pendingCommands.push(commands.parse(command));
       });
     };
     
-    var apply_commands = function () {
-      this_ge.render();
+    function applyCommands() {
+      _this.render();
     };
     
-    var register_command_stream = function (cursor) {
+    function registerCommandStream(cursor) {
       cursor.each(function(err, row) {
         if (err) throw err;
         if(row['new_val'] != null && row['old_val'] == null) {
-          this_ge.pendingCommands.push(commands.parse(row['new_val']));
-          this_ge.render();	
+          _this.pendingCommands.push(commands.parse(row['new_val']));
+          applyCommands();	
         }
       });
     };
-    
-    this_ge.datastore.fetchPreviousCommands(sessionId)
-      .then(function(cursor) {
-        cursor.toArray()
-              .then(queue_commands)
-              .then(apply_commands);
-      })
-      .then(function() {
-        this_ge.datastore.registerCommandChanges(sessionId)
-                         .then(register_command_stream);
-      });
   };
 
-  var on_map_loaded = function (err, map) {
+  var onMapLoaded = function(err, map) {
     MapManager.validate(map);
     logger.debug('Map loaded successfully');
 	    
-    this_ge.gameModel = new GameModel ();
+    _this.gameModel = new GameModel();
 
-    this_ge.gameModel.on('ready', on_ready);
-    this_ge.gameModel.on('objective-ok', on_objective_ok);
-    this_ge.gameModel.on('game-over', on_game_over);
+    _this.gameModel.on('ready', onReady);
+    _this.gameModel.on('objective-ok', onObjectiveOk);
+    _this.gameModel.on('game-over', onGameOver);
     
-    this_ge.gameModel.initialize(map, MapManager.internalize(map));
+    _this.gameModel.initialize(map, MapManager.internalize(map));
   };
 
-  MapManager.load('level1.tmx', on_map_loaded);
+  MapManager.load('level1.tmx', onMapLoaded);
 };
 
-GameEngine.prototype.playLevel = function (level, callback) {
+GameEngine.prototype.playLevel = function(level, callback) {
   logger.info('Playing level %s', level);
-  var this_ge = this;
+  var _this = this;
 
   this.gameView.bodyBox.show();
   this.initializeGameBindings();
 
-  var on_objective_ok = function () {
-    logger.debug('One objective complete');
-    this_ge.gameView.pushLine("Sys: One objective complete");
+  var onObjectiveOk = function() {
+    _this.gameView.pushLine("Sys: One objective complete");
   };
   
-  var on_game_over = function() {
-    logger.debug('Game over');
-    this_ge.gameView.pushLine("Sys: Game over, thanks for playing");
+  var onGameOver = function() {
+    _this.gameView.pushLine("Sys: Game over, thanks for playing");
     
-    this_ge.datastore.deleteCurrentSession().then(function(result) {
-      this_ge.gameView.bodyBox.hide();
-      this_ge.gameView.refresh();
-      this_ge.gameView.unbindKey('left',  this.processArrowKey);
-      this_ge.gameView.unbindKey('right', this.processArrowKey);
-      this_ge.gameView.unbindKey('up',    this.processArrowKey);
-      this_ge.gameView.unbindKey('down',  this.processArrowKey);
-      callback(null, null);
-    });
+    _this.datastore.deleteCurrentSession().then(closeLevel);
   };
 
-  var on_ready = function () {
-    logger.debug('Game ready');
-    this_ge.gameView.pushLine("Sys: Now playing " + level);
-    this_ge.render(); // render at least once
+  var onReady = function() {
+    _this.gameView.pushLine("Sys: Now playing " + level);
+    _this.render(); // render at least once
     
-    var queue_commands = function (reveived_commands) {
-      _.forEach(reveived_commands, function(command) {
-        this_ge.pendingCommands.push(commands.parse(command));
+    _this.datastore.fetchPreviousCommands()
+      .then(function processPreviousCommands(cursor) {
+        cursor.toArray().then(queueCommands).then(applyCommands);
+      })
+      .then(function subscribeNextCommands() {
+        _this.datastore.registerCommandChanges().then(registerCommandStream);
+      });
+    
+    function queueCommands(reveivedCommands) {
+      _.forEach(reveivedCommands, function parseAndPushCommand(command) {
+        _this.pendingCommands.push(commands.parse(command));
       });
     };
     
-    var apply_commands = function () {
-      this_ge.render();
+    function applyCommands() {
+      _this.render();
     };
     
-    var register_command_stream = function (cursor) {
+    function registerCommandStream(cursor) {
       cursor.each(function(err, row) {
         if (err) throw err;
         if(row['new_val'] != null && row['old_val'] == null) {
-          this_ge.pendingCommands.push(commands.parse(row['new_val']));
-          this_ge.render();	
+          _this.pendingCommands.push(commands.parse(row['new_val']));
+          applyCommands();	
         }
       });
     };
-    
-    this_ge.datastore.fetchPreviousCommands()
-      .then(function(cursor) {
-        cursor.toArray()
-              .then(queue_commands)
-              .then(apply_commands);
-      })
-      .then(function() {
-        this_ge.datastore.registerCommandChanges()
-                         .then(register_command_stream);
-      });
   };
 
-  var on_map_loaded = function (err, map) {
+  var onMapLoaded = function(err, map) {
     MapManager.validate(map);
     logger.debug('Map loaded successfully');
 	    
-    this_ge.gameModel = new GameModel ();
+    _this.gameModel = new GameModel();
 
-    this_ge.gameModel.on('ready', on_ready);
-    this_ge.gameModel.on('objective-ok', on_objective_ok);
-    this_ge.gameModel.on('game-over', on_game_over);
+    _this.gameModel.on('ready', onReady);
+    _this.gameModel.on('objective-ok', onObjectiveOk);
+    _this.gameModel.on('game-over', onGameOver);
     
-    this_ge.datastore.startCurrentSession().then(function(result) {
-      this_ge.gameModel.initialize(map, MapManager.internalize(map));
+    _this.datastore.startCurrentSession().then(function(result) {
+      _this.gameModel.initialize(map, MapManager.internalize(map));
     });
   };
 
-  MapManager.load('level1.tmx', on_map_loaded);
+  MapManager.load('level1.tmx', onMapLoaded);
+
+  function closeLevel() {
+    _this.gameView.bodyBox.hide();
+    _this.gameView.refresh();
+    _this.gameView.unbindKey(['left', 'up', 'right', 'down'], this._processArrowKey);
+    callback(null, null);
+  };
 };
 
-GameEngine.prototype.displayHome = function (callback) {
-  var self = this;
+GameEngine.prototype.displayHome = function(callback) {
+  var _this = this;
 
   this.gameView.lobyBox.show();
   
-  this.datastore.listSessions().then(function (results) {
-    results.toArray().then(function(rows) {
-      var currentSessions = _.map(rows, function(row) {
-        var short_id = row.id.split('-')[0];   
-        return short_id + " " + row.start.toISOString() + " player:" + row.player;
-      });
+  this.datastore.listSessions()
+    .then(function resultsToArray(results) { return results.toArray(); })
+    .then(function displayRows(rows) {
+      var currentSessions = _.map(rows, rowToSessionDescription);
 
-      self.gameView.sessionsList.setItems(currentSessions);
-      self.gameView.refresh();
+      _this.gameView.sessionsList.setItems(currentSessions);
+      _this.gameView.refresh();
       
-      self.gameView.sessionsList.once('select', function(elem, index) {
-    	self.gameView.lobyBox.hide();
-        callback(null, {type: 'join', sessionId: rows[index].id});
-      });
-      
-      self.gameView.newGameButton.once('press', function() {
-    	callback(null, {type: 'new-game'});
-      });
+      _this.gameView.sessionsList.once('select', joinSession);
+      _this.gameView.newGameButton.once('press', newGameSession);
     });
-  });
+
+  function joinSession(elem, index) {
+    //TODO handle no current sessions case
+  	_this.gameView.lobyBox.hide();
+    callback(null, {type: 'join', sessionId: rows[index].id});
+  }
+
+  function newGameSession() {
+    callback(null, {type: 'new-game'});
+  }
+    
+  function rowToSessionDescription(row) {
+    var short_id = row.id.split('-')[0];   
+    return short_id + " " + row.start.toISOString() + " player:" + row.player;
+  }
 };
 
 GameEngine.prototype.run = function () {
   logger.debug('Running game engine');
   
-  var self = this;
+  var _this = this;
 
   this.datastore.connect()
-      .then(function() {
-        self.initializeBindings();
-        self.displayHome(function(err, ask) {
-          if(ask.type == 'new-game') {
-            self.playLevel('level1', function() { console.log("finish"); });
-          } else if(ask.type == 'join') {
-            self.joinLevel(ask.sessionId, function() { console.log("finish"); }); 
-          }
-        });
+    .then(function() {
+      _this.initializeBindings();
+      _this.displayHome(function(err, ask) {
+        if(ask.type == 'new-game') {
+          _this.playLevel('level1', function() { console.log("finish"); });
+        } else if(ask.type == 'join') {
+          _this.joinLevel(ask.sessionId, function() { console.log("finish"); }); 
+        }
       });
+    });
 };
 
 module.exports = GameEngine;

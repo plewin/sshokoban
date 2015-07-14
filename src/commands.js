@@ -1,16 +1,16 @@
 var _ = require('lodash');
 
-function MovePlayer (direction) {
+function MovePlayer(direction) {
   this.name = 'move-player';
 
   this.direction = direction; 
 }
 
-MovePlayer.prototype.execute = function (gameModel) {
+MovePlayer.prototype.execute = function(gameModel) {
   gameModel.movePlayer(this.direction);
 }
 
-var parse = function (object) {
+var parse = function(object) {
   if(object.name === 'move-player') {
     return _.extend(new MovePlayer(), object)
   }

@@ -19,26 +19,26 @@ function validate(map) {
 
 // Convert a tmx map into a 2d array of tile types
 function internalize(map) {
-  var zipped_tiles = _.zip(map.layers[1].tiles, map.layers[0].tiles);
+  var zippedTiles = _.zip(map.layers[1].tiles, map.layers[0].tiles);
 	  
-  var merged_tiles = _.map(zipped_tiles, function (tiles) {
+  var mergedTiles = _.map(zippedTiles, function (tiles) {
     return _.reduce(tiles, function(tileUp, tileDown) {
       return _.isUndefined(tileUp) ? tileDown : tileUp;
     });
   });
 	  
-  var tiles_types = _.map(merged_tiles, function (tile) {
+  var tilesTypes = _.map(mergedTiles, function (tile) {
     return _.get(tile.properties, 'type', 'empty');
   });
   
-  return _.chunk(tiles_types, map.width);
+  return _.chunk(tilesTypes, map.width);
 }
 
-function load(map_name, callback) {
-  tmx.parseFile(map_name, callback);
+function load(mapName, callback) {
+  tmx.parseFile(mapName, callback);
 }
 
-function render(gameModel, game_box, program) {
+function render(gameModel, gameBox, program) {
   var map            = gameModel.currentMap;
   var playerPosition = gameModel.playerPosition;
   var state          = gameModel.currentSessionState;
@@ -61,8 +61,8 @@ function render(gameModel, game_box, program) {
         type = 'player';
       }
       
-      if(x < game_box.width - 2 && y < game_box.height - 2) {
-        program.move(x + game_box.aleft + 1, y + game_box.atop + 1);
+      if(x < gameBox.width - 2 && y < gameBox.height - 2) {
+        program.move(x + gameBox.aleft + 1, y + gameBox.atop + 1);
         program.bg(characters[type].bg);
         program.fg(characters[type].fg);
         program.write(characters[type].character);

@@ -2,7 +2,7 @@ var blessed    = require('blessed');
 var program    = blessed.program();
 var logger     = require('winston');
 
-function GameView () {
+function GameView() {
   this.screen = blessed.screen({
     autoPadding: true,
     fastCSR: true
@@ -116,11 +116,11 @@ function GameView () {
   this.lobyBox.hide();
 }
 
-GameView.prototype.pushLine = function (line) {
+GameView.prototype.pushLine = function(line) {
   this.chatBox.pushLine(line);
 };
 
-GameView.prototype.refresh = function () {
+GameView.prototype.refresh = function() {
   this.screen.render();
 };
 
@@ -132,11 +132,11 @@ GameView.prototype.getCanvas = function() {
   return program;
 };
 
-GameView.prototype.bindKey = function (key, callback) {
+GameView.prototype.bindKey = function(key, callback) {
   this.screen.key(key, callback);
 };
 
-GameView.prototype.unbindKey = function (key, callback) {
+GameView.prototype.unbindKey = function(key, callback) {
   this.screen.unkey(key, callback);
 };
 
