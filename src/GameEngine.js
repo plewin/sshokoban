@@ -66,11 +66,10 @@ GameEngine.prototype.render = function () {
   logger.debug('Rendering');
   var self = this;
 
-  _.forEach(this.pendingCommands, function(command) {
-    command.execute(self.gameModel); 
-  });
-  //TODO fix race condition
-  this.pendingCommands = [];
+  var command = undefined;
+  while(command = this.pendingCommands.shift()) {
+    command.execute(self.gameModel);
+  }
 
   this.gameView.refresh();
   MapManager.render(this.gameModel, this.gameView.getGameViewport(), this.gameView.getCanvas());
