@@ -80,7 +80,6 @@ GameEngine.prototype.joinLevel = function (sessionId, callback) {
   var this_ge = this;
  
   this.gameView.bodyBox.show();
-  //this.initializeGameBindings();
 
   var on_objective_ok = function () {
     logger.debug('One objective complete');
@@ -232,7 +231,6 @@ GameEngine.prototype.displayHome = function (callback) {
 
   this.gameView.lobyBox.show();
   
-  
   this.datastore.listSessions().then(function (results) {
     results.toArray().then(function(rows) {
       var currentSessions = _.map(rows, function(row) {
@@ -243,12 +241,12 @@ GameEngine.prototype.displayHome = function (callback) {
       self.gameView.sessionsList.setItems(currentSessions);
       self.gameView.refresh();
       
-      self.gameView.sessionsList.on('select', function(elem, index) {
+      self.gameView.sessionsList.once('select', function(elem, index) {
     	self.gameView.lobyBox.hide();
         callback(null, {type: 'join', sessionId: rows[index].id});
       });
       
-      self.gameView.newGameButton.on('press', function() {
+      self.gameView.newGameButton.once('press', function() {
     	callback(null, {type: 'new-game'});
       });
     });
