@@ -26,8 +26,18 @@ function GameEngine() {
 GameEngine.prototype.initializeBindings = function() {
   logger.info("Initializing bindings");
   
+  var _self = this;
+
   this.gameView.bindKey(['escape', 'q', 'C-c'], function(ch, key) {
     return process.exit(0);
+  });
+  
+  this.gameView.bindKey(['right', 'left'], function(ch, key) {
+    if(_self.gameView.newGameButton.focused) {
+      _self.gameView.sessionsList.focus();
+    } else {
+      _self.gameView.newGameButton.focus();
+    }
   });
 };
 
