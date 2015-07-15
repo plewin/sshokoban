@@ -10,6 +10,7 @@ var commands   = require('./commands.js');
 var logger     = require('winston');
 var async      = require('async');
 var _          = require('lodash');
+var Q          = require('q');
 
 logger.level = 'warning';
 
@@ -70,15 +71,28 @@ GameEngine.prototype.joinLevel = function (sessionId, callback) {
  
   this.gameView.bodyBox.show();
 
-  var onObjectiveOk = function() {
+  MapManager.load('level1.tmx', createGameModel);
+
+  function createGameModel(err, map) {
+    MapManager.validate(map);
+    _this.gameModel = new GameModel();
+
+    _this.gameModel.on('ready', onReady);
+    _this.gameModel.on('objective-ok', onObjectiveOk);
+    _this.gameModel.on('game-over', onGameOver);
+    
+    _this.gameModel.initialize(map, MapManager.internalize(map));
+  };
+
+  function onObjectiveOk() {
     _this.gameView.pushLine("Sys: One objective complete");
   };
   
-  var onGameOver = function() {
+  function onGameOver() {
     _this.gameView.pushLine("Sys: Game over, thanks for playing");
   };
 
-  var onReady = function() {
+  function onReady() {
     _this.gameView.pushLine("Sys: Now watching");
     _this.render(); // render at least once
 
@@ -110,21 +124,6 @@ GameEngine.prototype.joinLevel = function (sessionId, callback) {
       });
     };
   };
-
-  var onMapLoaded = function(err, map) {
-    MapManager.validate(map);
-    logger.debug('Map loaded successfully');
-	    
-    _this.gameModel = new GameModel();
-
-    _this.gameModel.on('ready', onReady);
-    _this.gameModel.on('objective-ok', onObjectiveOk);
-    _this.gameModel.on('game-over', onGameOver);
-    
-    _this.gameModel.initialize(map, MapManager.internalize(map));
-  };
-
-  MapManager.load('level1.tmx', onMapLoaded);
 };
 
 GameEngine.prototype.playLevel = function(level, callback) {
@@ -134,20 +133,37 @@ GameEngine.prototype.playLevel = function(level, callback) {
   this.gameView.bodyBox.show();
   this.initializeGameBindings();
 
-  var onObjectiveOk = function() {
+  MapManager.load('level1.tmx', createGameModel);
+
+  function createGameModel(err, map) {
+    MapManager.validate(map);
+    logger.debug('Map loaded successfully');
+	    
+    _this.gameModel = new GameModel();
+
+    _this.gameModel.on('ready', onReady);
+    _this.gameModel.on('objective-ok', onObjectiveOk);
+    _this.gameModel.on('game-over', onGameOver);
+	    
+    _this.datastore.startCurrentSession().then(function(result) {
+      _this.gameModel.initialize(map, MapManager.internalize(map));
+    });
+  };
+
+  function onObjectiveOk() {
     _this.gameView.pushLine("Sys: One objective complete");
   };
-  
-  var onGameOver = function() {
+	  
+  function onGameOver() {
     _this.gameView.pushLine("Sys: Game over, thanks for playing");
-    
+	    
     _this.datastore.deleteCurrentSession().then(closeLevel);
   };
 
-  var onReady = function() {
+  function onReady() {
     _this.gameView.pushLine("Sys: Now playing " + level);
     _this.render(); // render at least once
-    
+	    
     _this.datastore.fetchPreviousCommands()
       .then(function processPreviousCommands(cursor) {
         cursor.toArray().then(queueCommands).then(applyCommands);
@@ -155,17 +171,17 @@ GameEngine.prototype.playLevel = function(level, callback) {
       .then(function subscribeNextCommands() {
         _this.datastore.registerCommandChanges().then(registerCommandStream);
       });
-    
+	    
     function queueCommands(reveivedCommands) {
       _.forEach(reveivedCommands, function parseAndPushCommand(command) {
         _this.pendingCommands.push(commands.parse(command));
       });
     };
-    
+	    
     function applyCommands() {
       _this.render();
     };
-    
+	    
     function registerCommandStream(cursor) {
       cursor.each(function(err, row) {
         if (err) throw err;
@@ -176,23 +192,6 @@ GameEngine.prototype.playLevel = function(level, callback) {
       });
     };
   };
-
-  var onMapLoaded = function(err, map) {
-    MapManager.validate(map);
-    logger.debug('Map loaded successfully');
-	    
-    _this.gameModel = new GameModel();
-
-    _this.gameModel.on('ready', onReady);
-    _this.gameModel.on('objective-ok', onObjectiveOk);
-    _this.gameModel.on('game-over', onGameOver);
-    
-    _this.datastore.startCurrentSession().then(function(result) {
-      _this.gameModel.initialize(map, MapManager.internalize(map));
-    });
-  };
-
-  MapManager.load('level1.tmx', onMapLoaded);
 
   function closeLevel() {
     _this.gameView.bodyBox.hide();
@@ -217,17 +216,17 @@ GameEngine.prototype.displayHome = function(callback) {
       
       _this.gameView.sessionsList.once('select', joinSession);
       _this.gameView.newGameButton.once('press', newGameSession);
+
+      function joinSession(elem, index) {
+        //TODO handle no current sessions case
+      	_this.gameView.lobyBox.hide();
+        callback(null, {type: 'join', sessionId: rows[index].id});
+      }
+
+      function newGameSession() {
+        callback(null, {type: 'new-game'});
+      }
     });
-
-  function joinSession(elem, index) {
-    //TODO handle no current sessions case
-  	_this.gameView.lobyBox.hide();
-    callback(null, {type: 'join', sessionId: rows[index].id});
-  }
-
-  function newGameSession() {
-    callback(null, {type: 'new-game'});
-  }
     
   function rowToSessionDescription(row) {
     var short_id = row.id.split('-')[0];   
